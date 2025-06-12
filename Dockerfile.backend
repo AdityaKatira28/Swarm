@@ -8,16 +8,13 @@ RUN npm install -g pm2
 WORKDIR /app
 
 # Copy package files
-COPY backend/package*.json ./
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy backend source code
-COPY backend/ .
-
-# Copy PM2 ecosystem configuration
-COPY ecosystem.config.js .
+# Copy backend source code and config
+COPY . .
 
 # Create logs directory
 RUN mkdir -p logs

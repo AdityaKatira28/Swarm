@@ -2,9 +2,34 @@ services:
   swarmintelligencefrontend:
     image: swarmintelligencefrontend
     build:
-      context: frontend
-      dockerfile: ./Dockerfile
+      context: ./frontend
+      dockerfile: ../Dockerfile.frontend
     environment:
       NODE_ENV: production
     ports:
-      - 3000:3000
+      - "80:80"
+    depends_on:
+      - swarmintelligencebackend
+
+  swarmintelligencebackend:
+    image: swarmintelligencebackend
+    build:
+      context: ./backend
+      dockerfile: ../Dockerfile.backend
+    environment:
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
