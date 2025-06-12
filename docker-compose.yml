@@ -1,0 +1,103 @@
+    version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - swarm_network
+
+  sensor-agent:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - AGENT_TYPE=sensor
+      - AGENT_ID=sensor-1
+      - REGION_ID=north
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS=false
+    depends_on:
+      - redis
+    networks:
+      - swarm_network
+    restart: unless-stopped
+
+  aggregator-agent:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - AGENT_TYPE=aggregator
+      - AGENT_ID=agg-1
+      - REGION_ID=north
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS=false
+    depends_on:
+      - redis
+    networks:
+      - swarm_network
+    restart: unless-stopped
+
+  response-agent:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - AGENT_TYPE=response
+      - AGENT_ID=resp-1
+      - REGION_ID=north
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS=false
+    depends_on:
+      - redis
+    networks:
+      - swarm_network
+    restart: unless-stopped
+
+  simulator-agent:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - AGENT_TYPE=simulator
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_TLS=false
+    depends_on:
+      - redis
+    networks:
+      - swarm_network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_WS_URL=ws://localhost:8080
+      - VITE_API_BASE_URL=http://localhost:8080/api
+    depends_on:
+      - sensor-agent
+      - aggregator-agent
+      - response-agent
+    networks:
+      - swarm_network
+
+volumes:
+  redis_data:
+
+networks:
+  swarm_network:
+    driver: bridge
